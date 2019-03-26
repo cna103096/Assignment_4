@@ -1,0 +1,385 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Assignment_4
+{
+    public partial class Form1 : Form
+    {
+       
+        //pens
+        private static Pen BlackPen = new Pen(Color.Black);
+        private static Brush BlackBrush = new SolidBrush(Color.Black);
+        //font
+        static FontFamily fontFamily = new FontFamily("Arial");
+        private static Font GraphFont = new Font(fontFamily,10,FontStyle.Regular,GraphicsUnit.Pixel);
+
+        //Default colors, Black, Red, Green, Blue
+        private static Color Color1 = Color.FromArgb(0, 0, 0);
+        private static Color Color2 = Color.FromArgb(255,0,0);
+        private static Color Color3 = Color.FromArgb(0, 255, 0);
+        private static Color Color4 = Color.FromArgb(0, 0, 255);
+
+
+        //Axis's and Tick marks
+        private static int XMin = -100;
+        private static int XMax = 100;
+        private static int XInterval = 10;
+        private static float XMarks = Math.Abs( (Math.Abs(XMax - XMin)) / XInterval);
+        private static int YMin = -100;
+        private static int YMax = 100;
+        private static int YInterval = 10;
+        private static float YMarks = Math.Abs( (Math.Abs(YMax - YMin)) / YInterval);
+
+        //Percentage of the field the x axis is at
+        private static float xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+        //Percentage of the field the y axis is at
+        private static float yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+        //Percentage of the distance between ticks that the first tick will start at on x axis
+        private static float startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+        //Percentage of the distance between ticks that the first tick will start at on y axis
+        private static float startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+
+        public Form1()
+        {
+            InitializeComponent();
+            Button_Color_1.BackColor = Color1;
+            Button_Color_2.BackColor = Color2;
+            Button_Color_3.BackColor = Color3;
+            Button_Color_4.BackColor = Color4;
+        }
+
+        /* Draws x an y axis according to set values
+         * 
+         * */
+        private void Draw_Axis(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+
+            //both axes to be shown
+            if(YMin <= 0 && YMax >= 0 && XMin <= 0 && XMax >= 0)
+            {
+                //Vertical starting position of the x axis
+                float xAxisPos = Graph_Field.Height * xAxisPercentagePos;
+                //Horizontal starting position of the y axis
+                float yAxisPos = Graph_Field.Width * yAxisPercentagePos;
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+
+                //draw x axis
+                DrawXAxis(g, xAxisPos, startXTickPos, (XMin - (XMin % XInterval)));
+
+                //draw y axis
+                DrawYAxis(g, yAxisPos, startYTickPos, (YMax - (YMax % YInterval)));
+                
+            }
+            //Neither axes to be shown
+            else if ((XMin > 0 && YMin > 0) || (XMax < 0 && YMin > 0) || (XMax < 0 && YMax < 0) || (XMin > 0 && YMax < 0))
+            {
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+
+                //draw x axis
+                // x axis on top
+                if (YMax < 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, 0, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                //X axis is on bottom
+                else if (YMin > 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, Graph_Field.Height, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+
+                //draw y axis
+                //y axis on left
+                if (XMax < 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, Graph_Field.Width, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+                //y axis is on right
+                else if (XMin > 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, 0, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+            }
+            //just y axis
+            else if(YMin > 0 || YMax < 0) 
+            {
+                
+                //Vertical starting position of the y axis
+                float yAxisPos = Graph_Field.Width * yAxisPercentagePos;
+
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+
+                //draw y axis
+                DrawYAxis(g, yAxisPos, startYTickPos, (YMax - (YMax % YInterval)));
+
+                //draw x axis
+                // x axis on top
+                if (YMax < 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, 0, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                //X axis is on bottom
+                else if(YMin > 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, Graph_Field.Height, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                
+               
+            }
+            //Just x axis
+            else if(XMin > 0 || XMax < 0)
+            {
+                //Vertical starting position of the x axis
+                float xAxisPos = Graph_Field.Height * xAxisPercentagePos;
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //draw x axis
+                DrawXAxis(g, xAxisPos, startXTickPos, (XMin - (XMin % XInterval)));
+
+                //draw y axis
+                //y axis on left
+                if (XMax < 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, Graph_Field.Width, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+                //y axis is on right
+                else if (XMin > 0 )
+                {
+                    //draw y axis
+                    DrawYAxis(g, 0, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+            }
+
+
+            
+ 
+        }//DrawAxis
+
+
+        
+        private void DrawXAxis(Graphics g, float verticalPos, float startTic, int startNumber)
+        {
+            //number is below axis
+            int offset = 1;
+            //the numbers should be above axis
+            if ((Math.Abs(YMin) < Math.Abs(YMax)) || (YMin > 0))
+            {
+                offset = -15;
+            }
+
+            //draw x axis
+            g.DrawLine(BlackPen, 0, verticalPos, Graph_Field.Width, verticalPos);
+
+
+            //loop through ticks, do not label 0
+            for (int i = startNumber; i <= XMax; i += XInterval)
+            {
+
+                //do not label 0
+                if (i != 0)
+                {
+                    
+                    try
+                    {
+                        //draw the tick at
+                        g.DrawLine(BlackPen, startTic, verticalPos + 1, startTic, verticalPos - 1);
+                    }
+                    catch (OverflowException)
+                    {
+                        //happens when trying to determine tick marks that are too big for screen, nothing needs to be shown
+                    }
+                    
+
+
+                    //label each number 
+                    g.DrawString(String.Format("{0}", i ), GraphFont, BlackBrush, (startTic ) - 15, verticalPos + offset);
+                }
+                    
+
+                //iterate the position to draw next tick
+                startTic += (Graph_Field.Width / XMarks);
+            }
+
+        }
+
+
+        private void DrawYAxis(Graphics g, float horizontalPos, float startTic, int startNumber)
+        {
+            int offset = 1;
+            //the numbers should be to the left of the axis if
+            if ((Math.Abs(XMin) > Math.Abs(XMax)) || (XMax < 0))
+            {
+                offset = -23;
+            }
+
+            //draw y axis
+            g.DrawLine(BlackPen, horizontalPos, 0, horizontalPos, Graph_Field.Height);
+
+
+            //loop through ticks, 
+            for (int i = startNumber; i >= YMin; i -= YInterval)
+            {
+                //do not label 0
+                if (i != 0)
+                {
+                    try
+                    {
+                        g.DrawLine(BlackPen, horizontalPos - 1, startTic, horizontalPos + 1, startTic);
+                    }
+                    catch (OverflowException)
+                    {
+                        //happens when trying to determine tick marks that are too big for screen, nothing needs to be shown
+                    }
+                    
+                    //label each number 
+                    g.DrawString(String.Format("{0}", i), GraphFont, BlackBrush, horizontalPos + offset, (startTic) - 5);
+                }
+                
+
+                //iterate the position to draw next tick
+                startTic += (Graph_Field.Height / YMarks);
+            }
+
+        }
+
+
+
+        /* CheckNumUpDown
+         * Makes sure maxs stay above mins and vice versa
+         * */
+        private void CheckNumUpDown(object sender, EventArgs e)
+        {
+            //If XMin goes at or above XMax
+            if(NumUpDown_XMin.Value >= NumUpDown_XMax.Value)
+            {
+                NumUpDown_XMax.Value += 1;
+            }
+
+
+            //If YMin goes at or above YMax
+            if (NumUpDown_YMin.Value >= NumUpDown_YMax.Value)
+            {
+                NumUpDown_YMax.Value += 1;
+            }
+        }
+
+        private void SetScale(object sender, EventArgs e)
+        {
+            XMax = (int)NumUpDown_XMax.Value;
+            XMin = (int)NumUpDown_XMin.Value;
+            XInterval = (int)NumUpDown_XInterval.Value;
+            XMarks = Math.Abs((Math.Abs(XMax - XMin)) / XInterval);
+            YMax = (int)NumUpDown_YMax.Value;
+            YMin = (int)NumUpDown_YMin.Value;
+            YInterval = (int)NumUpDown_YInterval.Value;
+            YMarks = Math.Abs((Math.Abs(YMax - YMin)) / YInterval);
+
+            //Percentage of the field the x axis is at
+            xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+            //Percentage of the field the y axis is at
+            yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+            //Percentage of the distance between ticks that the first tick will start at on x axis
+            startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+            //Percentage of the distance between ticks that the first tick will start at on y axis
+            startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+        Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+
+        private void ResetScale(object sender, EventArgs e)
+        {
+            //Reset to default -100 100
+            XMax = 100;
+            XMin = -100;
+            XInterval = 10;
+            XMarks = Math.Abs((Math.Abs(XMax - XMin)) / XInterval);
+            YMax = 100;
+            YMin = -100;
+            YInterval = 10;
+            YMarks = Math.Abs((Math.Abs(YMax - YMin)) / YInterval);
+
+            //Percentage of the field the x axis is at
+            xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+            //Percentage of the field the y axis is at
+            yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+            //Percentage of the distance between ticks that the first tick will start at on x axis
+            startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+            //Percentage of the distance between ticks that the first tick will start at on y axis
+            startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+
+            //Redraw Graph area
+            Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+        private void Change_Color_Button_Click(object sender, System.EventArgs e)
+        {
+            if(colorDialog.ShowDialog() == DialogResult.OK)
+            {
+                
+                if((Button)sender == Button_Color_1)
+                {
+                    Color1 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color1;
+
+                }
+                else if ((Button)sender == Button_Color_2)
+                {
+                    Color2 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color2;
+                }
+                else if ((Button)sender == Button_Color_3)
+                {
+                    Color3 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color3;
+                }
+                else if ((Button)sender == Button_Color_4)
+                {
+                    Color4 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color4;
+                }
+            }
+
+        }
+
+
+    }
+}
