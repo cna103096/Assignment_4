@@ -1,0 +1,894 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Assignment_4
+{
+    public partial class Form1 : Form
+    {
+        
+        
+        //Array of Lines
+        public static Line[] Lines = new Line[4];
+       
+        
+        //font
+        static FontFamily fontFamily = new FontFamily("Arial");
+        private static Font GraphFont = new Font(fontFamily,10,FontStyle.Regular,GraphicsUnit.Pixel);
+
+        //Default colors, Black, Red, Green, Blue
+        private static Color Color1 = Color.FromArgb(0, 0, 0);
+        private static Color Color2 = Color.FromArgb(255,0,0);
+        private static Color Color3 = Color.FromArgb(0, 255, 0);
+        private static Color Color4 = Color.FromArgb(0, 0, 255);
+
+        //pens
+        private static Pen BlackPen = new Pen(Color.Black);
+        private static Brush BlackBrush = new SolidBrush(Color.Black);
+
+        private static Pen Pen1 = new Pen(Color1);
+        private static Pen Pen2 = new Pen(Color2);
+        private static Pen Pen3 = new Pen(Color3);
+        private static Pen Pen4 = new Pen(Color4);
+
+        //Axis's and Tick marks
+        private static int XMin = -100;
+        private static int XMax = 100;
+        private static int XInterval = 10;
+        private static float XMarks = Math.Abs( (Math.Abs(XMax - XMin)) / XInterval);
+        private static int YMin = -100;
+        private static int YMax = 100;
+        private static int YInterval = 10;
+        private static float YMarks = Math.Abs( (Math.Abs(YMax - YMin)) / YInterval);
+
+        //Percentage of the field the x axis is at
+        private static float xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+        //Percentage of the field the y axis is at
+        private static float yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+        //Percentage of the distance between ticks that the first tick will start at on x axis
+        private static float startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+        //Percentage of the distance between ticks that the first tick will start at on y axis
+        private static float startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+        
+
+
+        /* Line object, used to store data of a line
+         * 
+         * */
+        public class Line
+        {
+            //0 Linear, 1 Quadratic, 2 Cubic, 3 Circle
+            private uint type;
+            //y intercept of linear, quadratic, and cubic
+            private float yIntercept;
+            //x
+            private float slope;
+            //x^2
+            private float cubic;
+            //x^3
+            private float quadratic;
+            //x position of center of circle
+            private float h;
+            //y position of center of circle
+            private float k;
+            //radius of circle
+            private float r;
+
+            //public properties
+                        
+            #region
+            public uint Type
+            {
+                get { return type; }
+                set {
+                    if (value >= 0 || value <= 4)
+                        type = value;
+                    else
+                    {
+                        throw new ArgumentException("Not a valid Line type");
+                    }
+                }
+            }
+
+            public float YIntercept
+            {
+                get { return yIntercept; }
+                set { yIntercept = value; }
+            }
+
+            public float Slope
+            {
+                get { return slope; }
+                set { slope = value; }
+            }
+
+            public float Cubic
+            {
+                get { return cubic; }
+                set { cubic = value; }
+            }
+
+            public float Quadratic
+            {
+                get { return quadratic; }
+                set { quadratic = value; }
+            }
+
+            public float H
+            {
+                get { return h; }
+                set { h = value; }
+            }
+
+            public float K
+            {
+                get { return k; }
+                set { k = value; }
+            }
+
+            public float R
+            {
+
+                get { return r; }
+                set { r = value; }
+            }
+            #endregion
+
+            //Default constructor, 
+            public Line() : this(4, 0, 0, 0, 0, 0, 0, 0)
+            {
+
+            }
+
+            //Default argument constructor
+            //type,yintercept,slope,quadratic,cubic,circle x, circle y, circle r
+            public Line(uint iType, float iYIntercept, float iSlope, float iQuadratic, float iCubic,  float iH, float iK, float iR)
+            {
+                Type = iType;
+                YIntercept = iYIntercept;
+                Slope = iSlope;
+                Quadratic = iQuadratic;
+                Cubic = iCubic;
+                H = iH;
+                K = iK;
+                R = iR;
+            }
+
+            
+ 
+
+
+            /*To String
+             * outputs line in y = mx + b form except circles
+             * outputs blank string if type is 4, line is nothing
+             * */
+            public override string ToString()
+            {
+                string output;
+                switch (Type)
+                {
+                    case 0:
+                        output = String.Format("y = {0}x + {1}", Slope, YIntercept);
+                        break;
+                    case 1:
+                        output = String.Format("y = {0}x^2 + {1}x + {2}", Quadratic, Slope, YIntercept);
+                        break;
+                    case 2:
+                        output = String.Format("y = {0}x^3 + {1}x^2 + {2}x + {3}", Cubic, Quadratic, Slope, YIntercept);
+                        break;
+                    case 3:
+                        output = String.Format("((x - {0})^2 + (y - {1})^2 = {2}^2", H, K, R);
+                        break;
+                    default:
+                        output = "";
+                        break;
+
+                }
+
+                return output;
+            }
+        }
+        
+
+        public Form1()
+        {
+            InitializeComponent();
+            Button_Color_1.BackColor = Color1;
+            Button_Color_2.BackColor = Color2;
+            Button_Color_3.BackColor = Color3;
+            Button_Color_4.BackColor = Color4;
+        }
+
+        /* Draws x an y axis according to set values
+         * 
+         * */
+        private void Draw_Axis(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+
+            //both axes to be shown
+            if(YMin <= 0 && YMax >= 0 && XMin <= 0 && XMax >= 0)
+            {
+                //Vertical starting position of the x axis
+                float xAxisPos = Graph_Field.Height * xAxisPercentagePos;
+                //Horizontal starting position of the y axis
+                float yAxisPos = Graph_Field.Width * yAxisPercentagePos;
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+
+                //draw x axis
+                DrawXAxis(g, xAxisPos, startXTickPos, (XMin - (XMin % XInterval)));
+
+                //draw y axis
+                DrawYAxis(g, yAxisPos, startYTickPos, (YMax - (YMax % YInterval)));
+                
+            }
+            //Neither axes to be shown
+            else if ((XMin > 0 && YMin > 0) || (XMax < 0 && YMin > 0) || (XMax < 0 && YMax < 0) || (XMin > 0 && YMax < 0))
+            {
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+
+                //draw x axis
+                // x axis on top
+                if (YMax < 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, 0, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                //X axis is on bottom
+                else if (YMin > 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, Graph_Field.Height, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+
+                //draw y axis
+                //y axis on left
+                if (XMax < 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, Graph_Field.Width, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+                //y axis is on right
+                else if (XMin > 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, 0, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+            }
+            //just y axis
+            else if(YMin > 0 || YMax < 0) 
+            {
+                
+                //Vertical starting position of the y axis
+                float yAxisPos = Graph_Field.Width * yAxisPercentagePos;
+
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+
+                //draw y axis
+                DrawYAxis(g, yAxisPos, startYTickPos, (YMax - (YMax % YInterval)));
+
+                //draw x axis
+                // x axis on top
+                if (YMax < 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, 0, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                //X axis is on bottom
+                else if(YMin > 0)
+                {
+                    //draw x axis
+                    DrawXAxis(g, Graph_Field.Height, startXTickPos, (XMin - (XMin % XInterval)));
+                }
+                
+               
+            }
+            //Just x axis
+            else if(XMin > 0 || XMax < 0)
+            {
+                //Vertical starting position of the x axis
+                float xAxisPos = Graph_Field.Height * xAxisPercentagePos;
+
+                //xtick location
+                float startXTickPos = startXTickPer * (Graph_Field.Width / XMarks);
+                //ytick location
+                float startYTickPos = startYTickPer * (Graph_Field.Height / YMarks);
+
+                //draw x axis
+                DrawXAxis(g, xAxisPos, startXTickPos, (XMin - (XMin % XInterval)));
+
+                //draw y axis
+                //y axis on left
+                if (XMax < 0)
+                {
+                    //draw y axis
+                    DrawYAxis(g, Graph_Field.Width, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+                //y axis is on right
+                else if (XMin > 0 )
+                {
+                    //draw y axis
+                    DrawYAxis(g, 0, startYTickPos, (YMax - (YMax % YInterval)));
+                }
+            }
+
+
+            //Draw the functions
+            Draw_Functions(g);
+        }//DrawAxis
+
+
+        /* Draws the x axis with ticks and labels
+         * */
+        private void DrawXAxis(Graphics g, float verticalPos, float startTic, int startNumber)
+        {
+            //number is below axis
+            int offset = 1;
+            //the numbers should be above axis
+            if ((Math.Abs(YMin) < Math.Abs(YMax)) || (YMin > 0))
+            {
+                offset = -15;
+            }
+
+            //draw x axis
+            g.DrawLine(BlackPen, 0, verticalPos, Graph_Field.Width, verticalPos);
+
+
+            //loop through ticks, do not label 0
+            for (int i = startNumber; i <= XMax; i += XInterval)
+            {
+
+                //do not label 0
+                if (i != 0)
+                {
+                    
+                    try
+                    {
+                        //draw the tick at
+                        g.DrawLine(BlackPen, startTic, verticalPos + 1, startTic, verticalPos - 1);
+                    }
+                    catch (OverflowException)
+                    {
+                        //happens when trying to determine tick marks that are too big for screen, nothing needs to be shown
+                    }
+                    
+
+
+                    //label each number 
+                    g.DrawString(String.Format("{0}", i ), GraphFont, BlackBrush, (startTic ) - 15, verticalPos + offset);
+                }
+                    
+
+                //iterate the position to draw next tick
+                startTic += (Graph_Field.Width / XMarks);
+            }
+
+        }
+
+
+        /* Draws the y axis with ticks and labels
+        * */
+        private void DrawYAxis(Graphics g, float horizontalPos, float startTic, int startNumber)
+        {
+            int offset = 1;
+            //the numbers should be to the left of the axis if
+            if ((Math.Abs(XMin) > Math.Abs(XMax)) || (XMax < 0))
+            {
+                offset = -23;
+            }
+
+            //draw y axis
+            g.DrawLine(BlackPen, horizontalPos, 0, horizontalPos, Graph_Field.Height);
+
+
+            //loop through ticks, 
+            for (int i = startNumber; i >= YMin; i -= YInterval)
+            {
+                //do not label 0
+                if (i != 0)
+                {
+                    try
+                    {
+                        g.DrawLine(BlackPen, horizontalPos - 1, startTic, horizontalPos + 1, startTic);
+                    }
+                    catch (OverflowException)
+                    {
+                        //happens when trying to determine tick marks that are too big for screen, nothing needs to be shown
+                    }
+                    
+                    //label each number 
+                    g.DrawString(String.Format("{0}", i), GraphFont, BlackBrush, horizontalPos + offset, (startTic) - 5);
+                }
+                
+
+                //iterate the position to draw next tick
+                startTic += (Graph_Field.Height / YMarks);
+            }
+
+        }
+
+
+
+        /* CheckNumUpDown
+         * Makes sure maxs stay above mins and vice versa
+         * */
+        private void CheckNumUpDown(object sender, EventArgs e)
+        {
+            //If XMin goes at or above XMax
+            if(NumUpDown_XMin.Value >= NumUpDown_XMax.Value)
+            {
+                NumUpDown_XMax.Value += 1;
+            }
+
+
+            //If YMin goes at or above YMax
+            if (NumUpDown_YMin.Value >= NumUpDown_YMax.Value)
+            {
+                NumUpDown_YMax.Value += 1;
+            }
+        }
+
+        /* SetScale
+         * Sets the scale of the graph view to users choice, refreshes viewing area
+         * */
+        private void SetScale(object sender, EventArgs e)
+        {
+            XMax = (int)NumUpDown_XMax.Value;
+            XMin = (int)NumUpDown_XMin.Value;
+            XInterval = (int)NumUpDown_XInterval.Value;
+            XMarks = Math.Abs((Math.Abs(XMax - XMin)) / XInterval);
+            YMax = (int)NumUpDown_YMax.Value;
+            YMin = (int)NumUpDown_YMin.Value;
+            YInterval = (int)NumUpDown_YInterval.Value;
+            YMarks = Math.Abs((Math.Abs(YMax - YMin)) / YInterval);
+
+            //Percentage of the field the x axis is at
+            xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+            //Percentage of the field the y axis is at
+            yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+            //Percentage of the distance between ticks that the first tick will start at on x axis
+            startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+            //Percentage of the distance between ticks that the first tick will start at on y axis
+            startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+            //refresh Graph_Field
+            Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+        /* ResetScale
+         * Sets the scale of the graph view to defaults, refreshes viewing area
+         * */
+        private void ResetScale(object sender, EventArgs e)
+        {
+            //Reset to default -100 100
+            XMax = 100;
+            XMin = -100;
+            XInterval = 10;
+            XMarks = Math.Abs((Math.Abs(XMax - XMin)) / XInterval);
+            YMax = 100;
+            YMin = -100;
+            YInterval = 10;
+            YMarks = Math.Abs((Math.Abs(YMax - YMin)) / YInterval);
+
+            //Percentage of the field the x axis is at
+            xAxisPercentagePos = Math.Abs((float)YMax) / (Math.Abs((float)YMin) + Math.Abs((float)YMax));
+            //Percentage of the field the y axis is at
+            yAxisPercentagePos = Math.Abs((float)XMin) / (Math.Abs((float)XMin) + Math.Abs((float)XMax));
+
+            //Percentage of the distance between ticks that the first tick will start at on x axis
+            startXTickPer = (float)(Math.Abs(XMin) % XInterval) / (float)XInterval;
+            //Percentage of the distance between ticks that the first tick will start at on y axis
+            startYTickPer = (float)(YMax % YInterval) / (float)YInterval;
+
+
+            //Redraw Graph area
+            Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+        /* When a color dialog button is clicked, change the color of the button clicked on 
+         * and the color of the line
+         * 
+         * */
+        private void Change_Color_Button_Click(object sender, System.EventArgs e)
+        {
+            //if color is selected change the stored color and the color of the button
+            if(colorDialog.ShowDialog() == DialogResult.OK)
+            {
+                
+                if((Button)sender == Button_Color_1)
+                {
+                    Color1 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color1;
+
+                }
+                else if ((Button)sender == Button_Color_2)
+                {
+                    Color2 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color2;
+                }
+                else if ((Button)sender == Button_Color_3)
+                {
+                    Color3 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color3;
+                }
+                else if ((Button)sender == Button_Color_4)
+                {
+                    Color4 = colorDialog.Color;
+                    ((Button)sender).BackColor = Color4;
+                }
+            }
+
+
+            Pen1 = new Pen(Color1);
+            Pen2 = new Pen(Color2);
+            Pen3 = new Pen(Color3);
+            Pen4 = new Pen(Color4);
+
+    }
+
+        /* Draw button
+         * 
+         * */
+        private void Button_Draw_Click(object sender, EventArgs e)
+        {
+            //see which function type was entered
+            switch (CheckTypeRadio())
+            {
+                //linear selected
+                //type,yintercept,slope,quadratic,cubic,circle x, circle y, circle r
+                case 0:
+                    try
+                    {
+                        Lines[CheckFunctionRadio()] = new Line(0, (float)Convert.ToDecimal(Textbox_Linear_B.Text), (float)Convert.ToDecimal(Textbox_Linear_M.Text), 0, 0, 0, 0, 0);
+                        //Redraw Graph area
+                        Graph_Field.Invalidate();
+                        Graph_Field.Update();
+                        //Redraw labels
+                        Label_Functions();
+                        ClearInput();
+                    }
+                    //if nothing is entered or non numbers are entered
+                    catch (FormatException)
+                    {
+                        MessageBox.Show("You must enter numbers into all the input boxes");
+                        
+                    }
+                    break;
+                //Quadratic Selected
+                case 1:
+                    try
+                    {
+                        //change the Line in storage to what user specifies, catching non numbers
+                        Lines[CheckFunctionRadio()] = new Line(1, (float)Convert.ToDecimal(Textbox_Quadratic_C.Text), (float)Convert.ToDecimal(Textbox_Quadratic_B.Text), (float)Convert.ToDecimal(Textbox_Quadratic_A.Text), 0, 0, 0, 0);
+                        //Redraw Graph Area
+                        Graph_Field.Invalidate();
+                        Graph_Field.Update();
+                        //Redraw labels
+                        Label_Functions();
+                        ClearInput();
+                    }
+                    //if nothing is entered or non numbers are entered
+                    catch (FormatException)
+                    {
+                        MessageBox.Show("You must enter numbers into all the input boxes");
+                        ClearInput();
+                    }
+                    break;
+                //Cubic selected
+                case 2:
+                    try
+                    {
+                        //change the Line in storage to what user specifies, catching non numbers
+                        Lines[CheckFunctionRadio()] = new Line(2, (float)Convert.ToDecimal(Textbox_Cubic_D.Text), (float)Convert.ToDecimal(Textbox_Cubic_C.Text), (float)Convert.ToDecimal(Textbox_Cubic_B.Text), (float)Convert.ToDecimal(Textbox_Cubic_A.Text), 0, 0, 0);
+                        //Redraw Graph Area
+                        Graph_Field.Invalidate();
+                        Graph_Field.Update();
+                        //Redraw labels
+                        Label_Functions();
+                        ClearInput();
+                    }
+                    //if nothing is entered or non numbers are entered
+                    catch (FormatException)
+                    {
+                        MessageBox.Show("You must enter numbers into all the input boxes");
+                        ClearInput();
+
+                    }
+                    break;
+                //Circle
+                case 3:
+                    try
+                    {
+                        //change the Line in storage to what user specifies, catching non numbers
+                        Lines[CheckFunctionRadio()] = new Line(3, 0, 0, 0, 0, (float)Convert.ToDecimal(Textbox_Circle_H.Text), (float)Convert.ToDecimal(Textbox_Circle_K.Text), (float)Convert.ToDecimal(Textbox_Circle_R.Text));
+                        //Redraw Graph Area
+                        Graph_Field.Invalidate();
+                        Graph_Field.Update();
+                        //Redraw labels
+                        Label_Functions();
+                        ClearInput();
+                    }
+                    //if nothing is entered or non numbers are entered
+                    catch (FormatException)
+                    {
+                        MessageBox.Show("You must enter numbers into all the input boxes");
+                        ClearInput();
+                    }
+                    break;
+            }
+        }
+
+        /*Draw Functions
+         * If a function is input, draw the function on the graph
+         * */
+        private void Draw_Functions(Graphics g)
+        {
+            
+            
+            
+            for (uint i = 0; i < Lines.Length; i++)
+            {
+                if(Lines[i] != null)
+                {
+                    switch (Lines[i].Type)
+                    {
+                        //linear
+                        case 0:
+                            Draw_Linear(g, GetPen(i), i);
+                            break;
+                        case 1:
+                            Draw_Quadratic(g, GetPen(i), i);
+                            break;
+                        case 2:
+                            Draw_Cubic(g, GetPen(i), i);
+                            break;
+                        case 3:
+                            Draw_Circle(g, GetPen(i), i);
+                            break;
+                    }
+                }
+                
+            }
+        }
+
+        /* Draw Linear
+         * Draws the linear line
+         * */
+        public void Draw_Linear(Graphics g, Pen p, uint line)
+        {
+            //placeholder
+            g.DrawLine(p, 0, 0, Graph_Field.Width, Graph_Field.Height);
+
+        }
+
+        /* Draw Quadratic
+         * Draws the quadratic line
+         * */
+        public void Draw_Quadratic(Graphics g, Pen p, uint line)
+        {
+            //placeholder
+            g.DrawLine(p, 0, 0, Graph_Field.Width-30, Graph_Field.Height-30);
+
+        }
+
+        /* Draw Cubic
+         * Draws the Cubic line
+         * */
+        public void Draw_Cubic(Graphics g, Pen p, uint line)
+        {
+            //placeholder
+            g.DrawLine(p, 0, 0, Graph_Field.Width-60, Graph_Field.Height-60);
+
+        }
+
+        /* Draw Circle
+         * Draws the circle of given line
+         * */
+        public void Draw_Circle(Graphics g, Pen p, uint line)
+        {
+            //placeholder
+            g.DrawLine(p, 0, 0, Graph_Field.Width-90, Graph_Field.Height-90);
+
+        }
+
+        /*GetPen
+         * get the corresponding pen related to the different line
+         * */
+        private Pen GetPen(uint i)
+        {
+
+            //default to black
+            Pen p = BlackPen;
+            //the pen that is passed to the draw function is the selected
+            switch (i)
+            {
+                case 0:
+                    p = Pen1;
+                    break;
+                case 1:
+                    p = Pen2;
+                    break;
+                case 2:
+                    p = Pen3;
+                    break;
+                case 3:
+                    p = Pen4;
+                    break;
+            }
+            return p;
+        }
+
+        /* Label Functions
+         * If a function is input, the function will display at the bottom right corner of the screen
+         * */
+        private void Label_Functions()
+        {
+            if(Lines[0] != null)
+            {
+                Label_Function_1.Text = "Function 1: " + Lines[0].ToString();
+                if (Lines[0].Type == 4)
+                    Label_Function_1.Text = "";
+            }
+                
+            if (Lines[1] != null)
+            {
+                Label_Function_2.Text = "Function 2: " + Lines[1].ToString();
+                if (Lines[1].Type == 4)
+                    Label_Function_2.Text = "";
+            }
+                
+            if (Lines[2] != null)
+            {
+                Label_Function_3.Text = "Function 3: " + Lines[2].ToString();
+                if (Lines[2].Type == 4)
+                    Label_Function_3.Text = "";
+            }
+                
+            if (Lines[3] != null)
+            {
+                Label_Function_4.Text = "Function 4: " + Lines[3].ToString();
+                if (Lines[3].Type == 4)
+                    Label_Function_4.Text = "";
+            }
+                
+
+        }
+
+
+        //check radio button status functions
+        #region
+        /* CheckFunctionRadio
+         * returns 1,2,3,4 depending on which is selected
+         * returns 0 if none selected
+         * */
+        private uint CheckFunctionRadio()
+        {
+            if (RadioButton_Function1.Checked)
+            {
+                return 0;
+            }
+            else if (RadioButton_Function2.Checked)
+            {
+                return 1;
+            }
+            else if (RadioButton_Function3.Checked)
+            {
+                return 2;
+            }
+            else if (RadioButton_Function4.Checked)
+            {
+                return 3;
+            }
+            else
+            {
+                return 4;
+            }
+        }
+
+        /* CheckTypeRadio
+         * returns 0,1,2,3 depending on which is selected
+         * returns 4 if none selected
+         * */
+        private uint CheckTypeRadio()
+        {
+            if (RadioButton_Linear.Checked)
+            {
+                return 0;
+            }
+            else if (RadioButton_Quadratic.Checked)
+            {
+                return 1;
+            }
+            else if (RadioButton_Cubic.Checked)
+            {
+                return 2;
+            }
+            else if (RadioButton_Circle.Checked)
+            {
+                return 3;
+            }
+            else
+            {
+                return 4;
+            }
+        }
+        #endregion
+
+        //Clears the input textboxes
+        private void ClearInput()
+        {
+            Textbox_Linear_B.Clear();
+            Textbox_Linear_M.Clear();
+            Textbox_Quadratic_A.Clear();
+            Textbox_Quadratic_B.Clear();
+            Textbox_Quadratic_C.Clear();
+            Textbox_Cubic_A.Clear();
+            Textbox_Cubic_B.Clear();
+            Textbox_Cubic_C.Clear();
+            Textbox_Cubic_D.Clear();
+            Textbox_Circle_H.Clear();
+            Textbox_Circle_K.Clear();
+            Textbox_Circle_R.Clear();
+        }
+
+        /*clear selected button
+         * clears the selected line
+         * */
+        private void Button_Clear_Selected_Click(object sender, EventArgs e)
+        {
+            //"delete" line by making it blank
+            Lines[CheckFunctionRadio()] = new Line();
+            //Update labels
+            Label_Functions();
+
+            //Redraw Graph Area
+            Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+        /* Clear All button
+         * Clears all lines
+         * */
+        private void Button_Clear_All_Click(object sender, EventArgs e)
+        {
+            //"delete" all lines by making them blank
+            for(int i = 0; i < Lines.Length; i++)
+            {
+                Lines[i] = new Line();
+            }
+            //rewrite labels
+            Label_Functions();
+
+            //Redraw Graph Area
+            Graph_Field.Invalidate();
+            Graph_Field.Update();
+        }
+
+
+    }
+
+}
